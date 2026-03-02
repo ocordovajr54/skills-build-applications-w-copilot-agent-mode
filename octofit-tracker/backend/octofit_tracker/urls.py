@@ -17,64 +17,36 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers, serializers, viewsets
 from django.contrib.auth import get_user_model
-from .management.commands.populate_db import Team, Activity, Leaderboard, Workout
+from .models import User, Team, Activity, Leaderboard, Workout
 
 # Serializers
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.urls import reverse
 
-class TeamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Team
-        fields = ['id', 'name']
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'users': reverse('user-list', request=request, format=format),
+        'teams': reverse('team-list', request=request, format=format),
+        'activities': reverse('activity-list', request=request, format=format),
+        'leaderboard': reverse('leaderboard-list', request=request, format=format),
+        'workouts': reverse('workout-list', request=request, format=format),
+    })
 
-class ActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Activity
-        fields = ['id', 'user', 'type', 'duration']
+from .views import UserViewSet, TeamViewSet, ActivityViewSet, LeaderboardViewSet, WorkoutViewSet
 
-class LeaderboardSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Leaderboard
-        fields = ['id', 'team', 'points']
-
-class WorkoutSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Workout
-        fields = ['id', 'name', 'difficulty']
-
-# ViewSets
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = get_user_model().objects.all()
-    serializer_class = UserSerializer
-
-class TeamViewSet(viewsets.ModelViewSet):
-    queryset = Team.objects.all()
-    serializer_class = TeamSerializer
-
-class ActivityViewSet(viewsets.ModelViewSet):
-    queryset = Activity.objects.all()
-    serializer_class = ActivitySerializer
-
-class LeaderboardViewSet(viewsets.ModelViewSet):
-    queryset = Leaderboard.objects.all()
-    serializer_class = LeaderboardSerializer
-
-class WorkoutViewSet(viewsets.ModelViewSet):
-    queryset = Workout.objects.all()
-    serializer_class = WorkoutSerializer
-
-# Routers
 router = routers.DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'teams', TeamViewSet)
-router.register(r'activities', ActivityViewSet)
-router.register(r'leaderboard', LeaderboardViewSet)
-router.register(r'workouts', WorkoutViewSet)
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'teams', TeamViewSet, basename='team')
+router.register(r'activities', ActivityViewSet, basename='activity')
+router.register(r'leaderboard', LeaderboardViewSet, basename='leaderboard')
+router.register(r'workouts', WorkoutViewSet, basename='workout')
+
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
